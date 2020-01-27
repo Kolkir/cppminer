@@ -45,6 +45,11 @@ int func(float x, float y){
     return static_cast<int>(m.Add(x, y));
 }
 
+int func_TestAll(float x, float y){
+    Math<float> m;
+    return static_cast<int>(m.Add(x, y));
+}
+
 template<typename T>
 T subtract(T&& x, T&& y){
     return x - y;
