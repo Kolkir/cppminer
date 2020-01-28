@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from astparser import AstParser
+from ast_parser import AstParser
 
 
 def main():
