@@ -1,25 +1,10 @@
 from clang.cindex import Index
-from clang.cindex import CursorKind
 from sample import Sample
-from ast_utils import ast_to_graph
+from ast_utils import ast_to_graph, is_function, is_class, is_method
 from networkx.algorithms import shortest_path
+from networkx.drawing.nx_agraph import write_dot
 from itertools import permutations
 import re
-
-
-def is_function(node):
-    return node.kind in [CursorKind.FUNCTION_DECL,
-                         CursorKind.FUNCTION_TEMPLATE]
-
-
-def is_method(node):
-    return node.kind in [CursorKind.CXX_METHOD]
-
-
-def is_class(node):
-    return node.kind in [CursorKind.CLASS_TEMPLATE,
-                         CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
-                         CursorKind.CLASS_DECL]
 
 
 class AstParser:
@@ -45,6 +30,7 @@ class AstParser:
     def __parse_function(self, func_node):
         key = self.__tokenize(func_node.spelling)
         g = ast_to_graph(func_node)
+        write_dot(g, func_node.spelling + ".dot")
 
         terminal_nodes = [node for (node, degree) in g.degree() if degree == 1]
 
@@ -54,15 +40,15 @@ class AstParser:
             path = shortest_path(g, start, end)
             if path:
                 path = path[1:-1]
-                start_node = g.nodes[start]['node']
-                end_node = g.nodes[end]['node']
+                start_node = g.nodes[start]['label']
+                end_node = g.nodes[end]['label']
                 for path_item in path:
-                    path_node = g.nodes[path_item]['node']
+                    path_node = g.nodes[path_item]['label']
 
         sample = Sample(key, contexts)
         self.samples.append(sample)
 
-    def encode_token(self, token):
+    def __encode_token(self, token):
         if token in self.tokens.keys():
             return self.tokens[token]
         else:
@@ -78,5 +64,5 @@ class AstParser:
             str_tokens += internal_tokens
         tokens = []
         for token in str_tokens:
-            tokens.append(self.encode_token(token))
+            tokens.append(self.__encode_token(token))
         return tokens
