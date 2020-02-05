@@ -1,9 +1,10 @@
 from clang.cindex import Index
 from sample import Sample
-from ast_utils import ast_to_graph, is_function, is_class, is_method
+from ast_utils import ast_to_graph, is_function, is_class
 from networkx.algorithms import shortest_path
 from networkx.drawing.nx_agraph import write_dot
 from itertools import permutations
+import os
 import re
 
 
@@ -23,14 +24,15 @@ class AstParser:
 
         classes = [x for x in ast.cursor.get_children() if is_class(x)]
         for c in classes:
-            methods = [x for x in c.get_children() if is_method(x)]
+            methods = [x for x in c.get_children() if is_function(x)]
             for m in methods:
                 self.__parse_function(m)
 
     def __parse_function(self, func_node):
         key = self.__tokenize(func_node.spelling)
         g = ast_to_graph(func_node)
-        write_dot(g, func_node.spelling + ".dot")
+
+        self.debug_save_graph(func_node, g)
 
         terminal_nodes = [node for (node, degree) in g.degree() if degree == 1]
 
@@ -47,6 +49,14 @@ class AstParser:
 
         sample = Sample(key, contexts)
         self.samples.append(sample)
+
+    def debug_save_graph(self, func_node, g):
+        file_name = func_node.spelling + ".dot"
+        num = 0
+        while os.path.exists(file_name):
+            file_name = func_node.spelling + str(num) + ".dot"
+            num += 1
+        write_dot(g, file_name)
 
     def __encode_token(self, token):
         if token in self.tokens.keys():

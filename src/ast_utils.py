@@ -4,12 +4,18 @@ from clang.cindex import CursorKind
 
 
 def is_function(node):
-    return node.kind in [CursorKind.FUNCTION_DECL,
-                         CursorKind.FUNCTION_TEMPLATE]
-
-
-def is_method(node):
-    return node.kind in [CursorKind.CXX_METHOD]
+    if node.kind in [CursorKind.FUNCTION_DECL,
+                     CursorKind.FUNCTION_TEMPLATE,
+                     CursorKind.CXX_METHOD,
+                     CursorKind.DESTRUCTOR,
+                     CursorKind.CONSTRUCTOR]:
+        if node.is_definition():
+            not_empty = False
+            for _ in node.get_children():
+                not_empty = True
+                break
+            return not_empty
+    return False
 
 
 def is_class(node):
@@ -26,6 +32,11 @@ def is_literal(node):
                          CursorKind.CHARACTER_LITERAL]
 
 
+def is_template_parameter(node):
+    return node.kind in [CursorKind.TEMPLATE_TYPE_PARAMETER,
+                         CursorKind.TEMPLATE_TEMPLATE_PARAMETER]
+
+
 def is_reference(node):
     return node.kind in [CursorKind.DECL_REF_EXPR, CursorKind.MEMBER_REF_EXPR]
 
@@ -38,6 +49,26 @@ def is_operator(node):
 
 def is_call_expr(node):
     return node.kind == CursorKind.CALL_EXPR
+
+
+binary_operators = ['+', '-', '*', '/', '%', '&', '|']
+unary_operators = ['++', '--']
+comparison_operators = ['==', '<=', '>=', '<', '>', '!=', '&&', '||']
+unary_assignment_operators = [op + '=' for op in binary_operators]
+assignment_operators = ['='] + unary_assignment_operators
+
+
+def is_operator_token(token):
+    if token in binary_operators:
+        return True
+    if token in unary_operators:
+        return True
+    if token in comparison_operators:
+        return True
+    if token in unary_assignment_operators:
+        return True
+    if token in assignment_operators:
+        return True
 
 
 def get_id():
@@ -75,34 +106,43 @@ def add_call_expr(parent_id, ast_node, graph):
 
     expr_type = ast_node.type.spelling
     add_child(graph, parent_id, expr_type)
-
     # print("\tReturn type : {0}".format(expr_type))
     # print("\tName : {0}".format(name))
 
 
 def add_operator(parent_id, ast_node, graph):
-    children = list(ast_node.get_children())
-    start = (children[0].location.line,
-             children[0].location.column)
-    end = (children[1].location.line,
-           children[1].location.column)
+    # children = list(ast_node.get_children())
+    # start = (children[0].location.line,
+    #          children[0].location.column)
+    # end = (children[1].location.line,
+    #        children[1].location.column)
     name_token = ""
+    # for token in ast_node.get_tokens():
+    #     if (start < (token.extent.start.line,
+    #                  token.extent.start.column) and
+    #             end >= (token.extent.end.line,
+    #                     token.extent.end.column)):
+    #         name_token = token
+
     for token in ast_node.get_tokens():
-        if (start < (token.extent.start.line,
-                     token.extent.start.column) and
-                end >= (token.extent.end.line,
-                        token.extent.end.column)):
+        if is_operator_token(token.spelling):
             name_token = token
+
     name = name_token.spelling
     add_child(graph, parent_id, name)
-
     # print("\tName : {0}".format(name))
 
 
 def add_reference(parent_id, ast_node, graph):
-    name = ast_node.spelling
+    if ast_node.kind in [CursorKind.DECL_REF_EXPR, CursorKind.MEMBER_REF_EXPR]:
+        tokens = list(ast_node.get_tokens())
+        if tokens:
+            name = tokens[0].spelling
+        else:
+            name = "unknown"
+    else:
+        name = ast_node.spelling
     add_child(graph, parent_id, name)
-
     # print("\tName : {0}".format(name))
 
 
@@ -111,24 +151,22 @@ def add_literal(parent_id, ast_node, graph):
     if tokens:
         value = tokens[0].spelling
         add_child(graph, parent_id, value)
-
         # print("\tValue : {0}".format(value))
 
 
 def add_declaration(parent_id, ast_node, graph):
-    if is_function(ast_node) or is_method(ast_node):
+    if is_function(ast_node):
         return_type = ast_node.type.get_result().spelling
         add_child(graph, parent_id, return_type)
-        # print("\tReturn type : {0}".format(return_type))
     else:
         declaration_type = ast_node.type.spelling
         add_child(graph, parent_id, declaration_type)
         # print("\tDecl type : {0}".format(declaration_type))
 
-    name = ast_node.spelling
-    add_child(graph, parent_id, name)
-
-    # print("\tName : {0}".format(name))
+    if not is_template_parameter(ast_node):
+        name = ast_node.spelling
+        add_child(graph, parent_id, name)
+        # print("\tName : {0}".format(name))
 
 
 def ast_to_graph(ast_start_node):

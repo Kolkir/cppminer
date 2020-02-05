@@ -20,9 +20,11 @@ class Math {
 
 class Base {
   public:
-     virtual ~Base() {}
+     virtual ~Base() { --x; }
      virtual void Print() = 0;
      virtual void Draw();
+     friend bool operator==(const Derived& a, const Derived& b);
+
   private:
     int x = 0;
     int y = 8;
@@ -37,7 +39,15 @@ class Derived : public Base {
    void Print() override {
     Draw();
    }
+
+  void operator()() {
+    Print();
+  }
 };
+
+bool operator==(const Base& a, const Base& b) {
+    return (a.x == b.x) && (a.y == b.y);
+}
 
 
 int func(float x, float y){
@@ -53,6 +63,20 @@ int func_TestAll(float x, float y){
 template<typename T>
 T subtract(T&& x, T&& y){
     return x - y;
+}
+
+int maxof(int n_args, ...) {
+    ++n_args;
+}
+
+template<typename T>
+T adder(T v) {
+  return v;
+}
+
+template<typename T, typename... Args>
+T adder(T first, Args... args) {
+  return first + adder(args...);
 }
 
 int main(int argc, char* argv[]) {
