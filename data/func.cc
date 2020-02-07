@@ -10,5 +10,8 @@ int div(int x, int y) {
 int main() {
     auto e = 8;
     auto r = div(5, e);
+    auto pr = &r;
+    *pr = 45;
+    int& ref = r;
     return r;
 }
