@@ -16,6 +16,6 @@ class Sample:
         str_value = make_str_key(self.key)
         for context in self.contexts:
             str_value += " " + make_str_key(context.start_token)
-            str_value += "," + str(context.path)
+            str_value += "," + make_str_key(context.path.tokens)
             str_value += "," + make_str_key(context.end_token)
         return str_value

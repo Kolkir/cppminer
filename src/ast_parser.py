@@ -6,6 +6,7 @@ from ast_utils import ast_to_graph, is_function, is_class, is_operator_token
 from networkx.algorithms import shortest_path
 from networkx.drawing.nx_agraph import write_dot
 from itertools import permutations
+import uuid
 import os
 import re
 
@@ -19,14 +20,29 @@ def debug_save_graph(func_node, g):
     write_dot(g, file_name)
 
 
+def tokenize(name):
+    if is_operator_token(name):
+        return [name]
+    first_tokens = name.split('_')
+    str_tokens = []
+    for token in first_tokens:
+        internal_tokens = re.findall('[a-z]+|[A-Z][a-z]*|[0-9]+', token)
+        str_tokens += [t for t in internal_tokens if len(t) > 0]
+    if len(str_tokens) < 1:
+        print("tokenize error")
+    return str_tokens
+
+
 class AstParser:
-    def __init__(self):
+    def __init__(self, max_contexts_num, out_path):
+        self.save_buffer_size = 10000
+        self.out_path = out_path
+        self.max_contexts_num = max_contexts_num
         self.index = Index.create()
         self.samples = []
-        self.token_id = 0
-        self.tokens = dict()
-        self.path_id = 0
-        self.paths = dict()
+
+    def __del__(self):
+        self.save()
 
     def parse(self, file_name, compiler_args):
         ast = self.index.parse(None, [file_name] + compiler_args)
@@ -41,21 +57,23 @@ class AstParser:
             for m in methods:
                 self.__parse_function(m)
 
-    def save(self, out_path):
-        with open(os.path.join(out_path, "tokens.c2s"), "w") as file:
-            for token, key in self.tokens.items():
-                file.write(str(key) + ":" + token + "\n")
+        self.__dump_samples()
 
-        with open(os.path.join(out_path, "paths.c2s"), "w") as file:
-            for path, key in self.paths.items():
-                file.write(str(key) + ":" + str(path.tokens) + "\n")
+    def __dump_samples(self):
+        if len(self.samples) >= self.save_buffer_size:
+            self.save()
+            self.samples.clear()
 
-        with open(os.path.join(out_path, "samples.c2s"), "w") as file:
-            for sample in self.samples:
-                file.write(str(sample) + "\n")
+    def save(self):
+        if len(self.samples) > 0:
+            file_name = os.path.join(self.out_path, str(uuid.uuid4().hex) + ".c2s")
+            # print(file_name)
+            with open(file_name, "w") as file:
+                for sample in self.samples:
+                    file.write(str(sample) + "\n")
 
     def __parse_function(self, func_node):
-        key = self.__tokenize(func_node.spelling)
+        key = tokenize(func_node.spelling)
         g = ast_to_graph(func_node)
 
         # debug_save_graph(func_node, g)
@@ -74,42 +92,11 @@ class AstParser:
                 path_tokens = []
                 for path_item in path:
                     path_node = g.nodes[path_item]['label']
-                    path_tokens.append(self.__encode_token(path_node))
+                    path_tokens.append(path_node)
 
-                context = Context(self.__tokenize(start_node), self.__tokenize(end_node),
-                                  self.__encode_path(Path(path_tokens)))
+                context = Context(tokenize(start_node), tokenize(end_node),
+                                  Path(path_tokens))
                 contexts.append(context)
 
         sample = Sample(key, contexts)
         self.samples.append(sample)
-
-    def __encode_token(self, token):
-        if token in self.tokens.keys():
-            return self.tokens[token]
-        else:
-            self.token_id += 1
-            self.tokens[token] = self.token_id
-            return self.token_id
-
-    def __encode_path(self, path):
-        if path in self.paths.keys():
-            return self.paths[path]
-        else:
-            self.path_id += 1
-            self.paths[path] = self.path_id
-            return self.path_id
-
-    def __tokenize(self, name):
-        if is_operator_token(name):
-            return [self.__encode_token(name)]
-        first_tokens = name.split('_')
-        str_tokens = []
-        for token in first_tokens:
-            internal_tokens = re.findall('[a-z]+|[A-Z]+|[0-9]+', token)
-            str_tokens += [t for t in internal_tokens if len(t) > 0]
-        ret_tokens = []
-        for token in str_tokens:
-            ret_tokens.append(self.__encode_token(token))
-        if len(ret_tokens) < 1:
-            print("tokenize error")
-        return ret_tokens

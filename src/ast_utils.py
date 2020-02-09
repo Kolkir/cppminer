@@ -111,19 +111,7 @@ def add_call_expr(parent_id, ast_node, graph):
 
 
 def add_operator(parent_id, ast_node, graph):
-    # children = list(ast_node.get_children())
-    # start = (children[0].location.line,
-    #          children[0].location.column)
-    # end = (children[1].location.line,
-    #        children[1].location.column)
     name_token = ""
-    # for token in ast_node.get_tokens():
-    #     if (start < (token.extent.start.line,
-    #                  token.extent.start.column) and
-    #             end >= (token.extent.end.line,
-    #                     token.extent.end.column)):
-    #         name_token = token
-
     for token in ast_node.get_tokens():
         if is_operator_token(token.spelling):
             name_token = token
