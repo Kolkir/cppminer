@@ -71,6 +71,9 @@ class AstParser:
             with open(file_name, "w") as file:
                 for sample in self.samples:
                     file.write(str(sample) + "\n")
+            file_name += ".num"
+            with open(file_name, "w") as file:
+                file.write(str(len(self.samples)))
 
     def __parse_function(self, func_node):
         key = tokenize(func_node.spelling)

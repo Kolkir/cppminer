@@ -4,6 +4,7 @@ from ast_parser import AstParser
 from clang.cindex import CompilationDatabase, CompilationDatabaseError
 import glob
 import multiprocessing
+from random import shuffle
 
 
 def files(input_path):
@@ -102,6 +103,35 @@ def main():
 
     # Wait for all of the tasks to finish
     tasks.join()
+    for p in processes:
+        p.join()
+
+    # shuffle and merge samples
+    files_map = dict()
+    samples_list = []
+    file_index = 0
+    sample_index = 0
+    for file_path in glob.glob(output_path + '**/*.c2s.num', recursive=True):
+        with open(file_path) as file:
+            samples_num = int(file.readline())
+
+        files_map[file_index] = file_path[:-4]
+        for _ in range(samples_num):
+            samples_list.append((sample_index, file_index))
+            sample_index += 1
+        file_index += 1
+
+    shuffle(samples_list)
+
+    # split samples into test, validation and training parts
+    all_samples_num = len(samples_list)
+    train_samples_num = int(all_samples_num * 0.7)
+    test_samples_num = (all_samples_num - train_samples_num) // 2
+    validation_samples_num = test_samples_num
+
+    print(train_samples_num)
+    print(test_samples_num)
+    print(validation_samples_num)
 
 
 if __name__ == '__main__':
