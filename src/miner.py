@@ -46,6 +46,10 @@ class ParserProcess(multiprocessing.Process):
         return
 
 
+def dump_data_set(samdump_data_setples, start, end, file_name):
+    pass
+
+
 def main():
     args_parser = argparse.ArgumentParser(
         description='cppminer generates a code2seq dataset from C++ sources')
@@ -127,11 +131,10 @@ def main():
     all_samples_num = len(samples_list)
     train_samples_num = int(all_samples_num * 0.7)
     test_samples_num = (all_samples_num - train_samples_num) // 2
-    validation_samples_num = test_samples_num
 
-    print(train_samples_num)
-    print(test_samples_num)
-    print(validation_samples_num)
+    dump_data_set(samples_list, 0, train_samples_num, "train.c2s")
+    dump_data_set(samples_list, train_samples_num, train_samples_num + test_samples_num, "test.c2s")
+    dump_data_set(samples_list, train_samples_num + test_samples_num, len(samples_list), "validation.c2s")
 
 
 if __name__ == '__main__':

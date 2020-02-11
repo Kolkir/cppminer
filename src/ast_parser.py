@@ -68,12 +68,17 @@ class AstParser:
         if len(self.samples) > 0:
             file_name = os.path.join(self.out_path, str(uuid.uuid4().hex) + ".c2s")
             # print(file_name)
+            samples_pos = [0]
             with open(file_name, "w") as file:
                 for sample in self.samples:
                     file.write(str(sample) + "\n")
+                    samples_pos.append(file.tell())
+
             file_name += ".num"
             with open(file_name, "w") as file:
-                file.write(str(len(self.samples)))
+                file.write(str(len(self.samples)) + "\n")
+                for pos in samples_pos:
+                    file.write(str(pos) + "\n")
 
     def __parse_function(self, func_node):
         key = tokenize(func_node.spelling)
