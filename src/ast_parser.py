@@ -26,7 +26,7 @@ def tokenize(name):
     first_tokens = name.split('_')
     str_tokens = []
     for token in first_tokens:
-        internal_tokens = re.findall('[a-z]+|[A-Z][a-z]*|[0-9]+', token)
+        internal_tokens = re.findall('[a-z]+|[A-Z]+[a-z]*|[0-9.]+', token)
         str_tokens += [t for t in internal_tokens if len(t) > 0]
     if len(str_tokens) < 1:
         print("tokenize error")
