@@ -9,7 +9,7 @@ from itertools import permutations
 import uuid
 import os
 import re
-
+import random
 
 def debug_save_graph(func_node, g):
     file_name = func_node.spelling + ".dot"
@@ -34,10 +34,11 @@ def tokenize(name):
 
 
 class AstParser:
-    def __init__(self, max_contexts_num, out_path):
+    def __init__(self, max_contexts_num, max_path_len, out_path):
         self.save_buffer_size = 10000
         self.out_path = out_path
         self.max_contexts_num = max_contexts_num
+        self.max_path_len = max_path_len
         self.index = Index.create()
         self.samples = []
 
@@ -88,10 +89,13 @@ class AstParser:
         terminal_nodes = [node for (node, degree) in g.degree() if degree == 1]
 
         contexts = []
-        ends = permutations(terminal_nodes, 2)
+        ends = list(permutations(terminal_nodes, 2))
+        random.shuffle(ends)
         for start, end in ends:
             path = shortest_path(g, start, end)
             if path:
+                if self.max_path_len != 0 and len(path) > self.max_path_len:
+                    continue  # skip too long paths
                 path = path[1:-1]
                 start_node = g.nodes[start]['label']
                 end_node = g.nodes[end]['label']
@@ -104,6 +108,9 @@ class AstParser:
                 context = Context(tokenize(start_node), tokenize(end_node),
                                   Path(path_tokens))
                 contexts.append(context)
+                if len(contexts) > self.max_contexts_num:
+                    break  # limit number of contexts
 
-        sample = Sample(key, contexts)
-        self.samples.append(sample)
+        if len(contexts) > 0:
+            sample = Sample(key, contexts)
+            self.samples.append(sample)

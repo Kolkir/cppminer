@@ -15,10 +15,10 @@ def files(input_path):
 
 
 class ParserProcess(multiprocessing.Process):
-    def __init__(self, task_queue, max_contexts_num, input_path, output_path):
+    def __init__(self, task_queue, max_contexts_num, max_path_len, input_path, output_path):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
-        self.parser = AstParser(max_contexts_num, output_path)
+        self.parser = AstParser(max_contexts_num, max_path_len, output_path)
         try:
             self.compdb = CompilationDatabase.fromDirectory(input_path)
         except CompilationDatabaseError:
@@ -67,6 +67,13 @@ def main():
                              default=100,
                              required=False)
 
+    args_parser.add_argument('-l', '--max_path_len',
+                             metavar='MaxContextsPerSample',
+                             type=int,
+                             help='maximum path length (0 - no limit)',
+                             default=0,
+                             required=False)
+
     args_parser.add_argument('-p', '--processes_num',
                              metavar='ParallelProcessesNum',
                              type=int,
@@ -82,6 +89,9 @@ def main():
     max_contexts_num = args.max_contexts_num
     print('Max contexts num: ' + str(max_contexts_num))
 
+    max_path_len = args.max_path_len
+    print('Max path length: ' + str(max_path_len))
+
     input_path = Path(args.Path).resolve().as_posix()
     print('Input path: ' + input_path)
 
@@ -89,7 +99,7 @@ def main():
     print('Output path: ' + output_path)
 
     tasks = multiprocessing.JoinableQueue()
-    processes = [ParserProcess(tasks, max_contexts_num, input_path, output_path)
+    processes = [ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
                  for i in range(parallel_processes_num)]
     for p in processes:
         p.start()
