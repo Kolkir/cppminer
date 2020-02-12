@@ -61,21 +61,21 @@ def main():
                              help='the output path')
 
     args_parser.add_argument('-c', '--max_contexts_num',
-                             metavar='MaxContextsPerSample',
+                             metavar='number',
                              type=int,
                              help='maximum number of contexts per sample',
                              default=100,
                              required=False)
 
     args_parser.add_argument('-l', '--max_path_len',
-                             metavar='MaxContextsPerSample',
+                             metavar='length',
                              type=int,
                              help='maximum path length (0 - no limit)',
                              default=0,
                              required=False)
 
     args_parser.add_argument('-p', '--processes_num',
-                             metavar='ParallelProcessesNum',
+                             metavar='number',
                              type=int,
                              help='number of parallel processes',
                              default=4,
