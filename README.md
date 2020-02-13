@@ -20,10 +20,10 @@ optional arguments:
 ~~~
 
 The input path is traversed recursively and all files with following extensions `c, cc, cpp` are parsed. 
-It is recommended to use [c++ compilation data-base](https://clang.llvm.org/docs/JSONCompilationDatabase.html) which provides all required compilation flags for all project files.
-The application produces three files `train.c2s`, `test.c2s` and `validation.c2s` into the output directory.  
+It is recommended to use the [c++ compilation database](https://clang.llvm.org/docs/JSONCompilationDatabase.html) which provides all required compilation flags for project files.
+The application produces following three files `train.c2s`, `test.c2s` and `validation.c2s` into the output directory.  
 
-These files has following format:
+These files have following format:
 
 * Each row is an example.
 * Each example is a space-delimited list of fields, where:
