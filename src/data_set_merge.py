@@ -1,4 +1,4 @@
-import glob
+from pathlib import Path
 from random import shuffle
 import os
 
@@ -14,9 +14,9 @@ class DataSetMerge:
 
     def read_samples(self):
         file_index = 0
-        for file_path in glob.glob(self.output_path + '**/*.c2s.num', recursive=True):
-            self.files_map[file_index] = file_path[:-4]
-            with open(file_path) as file:
+        for file_path in Path(self.output_path).rglob('*.c2s.num'):
+            self.files_map[file_index] = file_path.as_posix()[:-4]
+            with file_path.open() as file:
                 for line in file.readlines():
                     sample_pos = int(line)
                     self.samples_list.append((sample_pos, file_index))
@@ -39,7 +39,7 @@ class DataSetMerge:
 
     def clear(self):
         files_to_hold = [self.train_set_file, self.test_set_file, self.validation_set_file]
-        files = list(glob.glob(self.output_path + '**/*.*', recursive=True))
+        files = [p.as_posix() for p in Path(self.output_path).rglob('*.*')]
         for file_path in files:
             if file_path not in files_to_hold:
                 os.remove(file_path)

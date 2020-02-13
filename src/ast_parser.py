@@ -11,6 +11,7 @@ import os
 import re
 import random
 
+
 def debug_save_graph(func_node, g):
     file_name = func_node.spelling + ".dot"
     num = 0
@@ -45,8 +46,8 @@ class AstParser:
     def __del__(self):
         self.save()
 
-    def parse(self, file_name, compiler_args):
-        ast = self.index.parse(None, [file_name] + compiler_args)
+    def parse(self, compiler_args):
+        ast = self.index.parse(None, compiler_args)
 
         functions = [x for x in ast.cursor.get_children() if is_function(x)]
         for f in functions:
@@ -63,7 +64,6 @@ class AstParser:
     def __dump_samples(self):
         if len(self.samples) >= self.save_buffer_size:
             self.save()
-            self.samples.clear()
 
     def save(self):
         if len(self.samples) > 0:
@@ -79,6 +79,7 @@ class AstParser:
             with open(file_name, "w") as file:
                 for pos in samples_pos:
                     file.write(str(pos) + "\n")
+            self.samples.clear()
 
     def __parse_function(self, func_node):
         key = tokenize(func_node.spelling)

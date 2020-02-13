@@ -2,7 +2,6 @@ import argparse
 from pathlib import Path
 from ast_parser import AstParser
 from clang.cindex import CompilationDatabase, CompilationDatabaseError
-import glob
 import multiprocessing
 from data_set_merge import DataSetMerge
 
@@ -10,8 +9,8 @@ from data_set_merge import DataSetMerge
 def files(input_path):
     file_types = ('*.c', '*.cc', '*.cpp')
     for file_type in file_types:
-        for file_path in glob.glob(input_path + '**/' + file_type, recursive=True):
-            yield file_path
+        for file_path in Path(input_path).rglob(file_type):
+            yield file_path.as_posix()
 
 
 class ParserProcess(multiprocessing.Process):
@@ -27,23 +26,31 @@ class ParserProcess(multiprocessing.Process):
     def run(self):
         default_compile_args = []
 
-        while True:
-            file_path = self.task_queue.get()
-            if file_path is None:
-                self.task_queue.task_done()
-                break
-            # print('Parsing : ' + file_path)
-            if not self.compdb:
-                # print('Compilation database was not found in the input directory, using default args list')
-                self.parser.parse(file_path, default_compile_args)
-            else:
-                compile_args = self.compdb.getCompileCommands(file_path)
-                # print('Compile flags : ' + str(compile_args))
-                self.parser.parse(file_path, compile_args)
-            self.task_queue.task_done()
+        while self.parse_file(default_compile_args):
+            pass
 
-        self.parser.save()
+        self.save()
         return
+
+    def save(self):
+        self.parser.save()
+
+    def parse_file(self, default_compile_args=[]):
+        file_path = self.task_queue.get()
+        if file_path is None:
+            self.task_queue.task_done()
+            return False
+        # print('Parsing : ' + file_path)
+        if not self.compdb:
+            # print('Compilation database was not found in the input directory, using default args list')
+            self.parser.parse([file_path] + default_compile_args)
+        else:
+            commands = self.compdb.getCompileCommands(file_path)
+            if len(commands) > 0:
+                args = [arg for arg in commands[0].arguments]
+                self.parser.parse(args[1:])
+        self.task_queue.task_done()
+        return True
 
 
 def main():
@@ -98,24 +105,32 @@ def main():
     output_path = Path(args.OutPath).resolve().as_posix()
     print('Output path: ' + output_path)
 
-    tasks = multiprocessing.JoinableQueue()
-    processes = [ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
-                 for i in range(parallel_processes_num)]
-    for p in processes:
-        p.start()
-
     print("Parsing files ...")
-    for file_path in files(input_path):
-        tasks.put(file_path)
+    tasks = multiprocessing.JoinableQueue()
+    if parallel_processes_num == 1:
+        parser = ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
+        for file_path in files(input_path):
+            tasks.put(file_path)
+            parser.parse_file()
+        parser.save()
+        tasks.join()
+    else:
+        processes = [ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
+                     for i in range(parallel_processes_num)]
+        for p in processes:
+            p.start()
 
-    # add terminating tasks
-    for i in range(parallel_processes_num):
-        tasks.put(None)
+        for file_path in files(input_path):
+            tasks.put(file_path)
 
-    # Wait for all of the tasks to finish
-    tasks.join()
-    for p in processes:
-        p.join()
+        # add terminating tasks
+        for i in range(parallel_processes_num):
+            tasks.put(None)
+
+        # Wait for all of the tasks to finish
+        tasks.join()
+        for p in processes:
+            p.join()
     print("Parsing done")
 
     # shuffle and merge samples
