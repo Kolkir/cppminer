@@ -1,56 +1,21 @@
 import argparse
+import time
 from pathlib import Path
-from ast_parser import AstParser
-from clang.cindex import CompilationDatabase, CompilationDatabaseError
 import multiprocessing
 from data_set_merge import DataSetMerge
+import os
+from tqdm import tqdm
+from parser_process import ParserProcess
+
+file_types = ('*.c', '*.cc', '*.cpp', '*.cxx', '*.c++')
 
 
 def files(input_path):
-    file_types = ('*.c', '*.cc', '*.cpp')
+    if os.path.isfile(input_path):
+        yield input_path
     for file_type in file_types:
         for file_path in Path(input_path).rglob(file_type):
             yield file_path.as_posix()
-
-
-class ParserProcess(multiprocessing.Process):
-    def __init__(self, task_queue, max_contexts_num, max_path_len, input_path, output_path):
-        multiprocessing.Process.__init__(self)
-        self.task_queue = task_queue
-        self.parser = AstParser(max_contexts_num, max_path_len, output_path)
-        try:
-            self.compdb = CompilationDatabase.fromDirectory(input_path)
-        except CompilationDatabaseError:
-            self.compdb = None
-
-    def run(self):
-        default_compile_args = []
-
-        while self.parse_file(default_compile_args):
-            pass
-
-        self.save()
-        return
-
-    def save(self):
-        self.parser.save()
-
-    def parse_file(self, default_compile_args=[]):
-        file_path = self.task_queue.get()
-        if file_path is None:
-            self.task_queue.task_done()
-            return False
-        # print('Parsing : ' + file_path)
-        if not self.compdb:
-            # print('Compilation database was not found in the input directory, using default args list')
-            self.parser.parse([file_path] + default_compile_args)
-        else:
-            commands = self.compdb.getCompileCommands(file_path)
-            if len(commands) > 0:
-                args = [arg for arg in commands[0].arguments]
-                self.parser.parse(args[1:])
-        self.task_queue.task_done()
-        return True
 
 
 def main():
@@ -110,13 +75,14 @@ def main():
     if parallel_processes_num == 1:
         parser = ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
         for file_path in files(input_path):
+            print("Parsing : " + file_path)
             tasks.put(file_path)
             parser.parse_file()
         parser.save()
         tasks.join()
     else:
         processes = [ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
-                     for i in range(parallel_processes_num)]
+                     for _ in range(parallel_processes_num)]
         for p in processes:
             p.start()
 
@@ -128,7 +94,15 @@ def main():
             tasks.put(None)
 
         # Wait for all of the tasks to finish
-        tasks.join()
+        tasks_left = tasks.qsize()
+        with tqdm(total=tasks_left) as pbar:
+            for _ in range(tasks_left):
+                time.sleep(0.1)
+                tasks_num = tasks.qsize()
+                pbar.update(tasks_left - tasks_num)
+                tasks_left = tasks_num
+
+        tasks.qsize().join()
         for p in processes:
             p.join()
     print("Parsing done")

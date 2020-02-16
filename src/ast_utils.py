@@ -1,6 +1,6 @@
 import networkx as nx
 import uuid
-from clang.cindex import CursorKind
+from clang.cindex import CursorKind, TypeKind, TokenKind
 
 
 def is_function(node):
@@ -95,6 +95,7 @@ def add_node(ast_node, graph):
 
 def add_child(graph, parent_id, name):
     child_id = get_id()
+    assert len(name) > 0, "Missing node name"
     graph.add_node(child_id, label=name)
     graph.add_edge(parent_id, child_id)
 
@@ -111,23 +112,32 @@ def add_call_expr(parent_id, ast_node, graph):
 
 
 def add_operator(parent_id, ast_node, graph):
-    name_token = ""
+    name_token = None
     for token in ast_node.get_tokens():
         if is_operator_token(token.spelling):
             name_token = token
 
-    name = name_token.spelling
-    add_child(graph, parent_id, name)
-    # print("\tName : {0}".format(name))
+    if not name_token:
+        filename = ast_node.location.file.name
+        with open(filename, 'r') as fh:
+            contents = fh.read()
+        code_str = contents[ast_node.extent.start.offset: ast_node.extent.end.offset]
+        for ch in code_str:
+            if ch in binary_operators:
+                add_child(graph, parent_id, ch)
+    else:
+        name = name_token.spelling
+        add_child(graph, parent_id, name)
+        # print("\tName : {0}".format(name))
 
 
 def add_reference(parent_id, ast_node, graph):
     if ast_node.kind in [CursorKind.DECL_REF_EXPR, CursorKind.MEMBER_REF_EXPR]:
-        tokens = list(ast_node.get_tokens())
-        if tokens:
-            name = tokens[0].spelling
-        else:
-            name = "unknown"
+        name = "unknown"
+        for token in ast_node.get_tokens():
+            if token.kind == TokenKind.IDENTIFIER:
+                name = token.spelling
+                break
     else:
         name = ast_node.spelling
     add_child(graph, parent_id, name)
@@ -135,11 +145,15 @@ def add_reference(parent_id, ast_node, graph):
 
 
 def add_literal(parent_id, ast_node, graph):
-    tokens = list(ast_node.get_tokens())
-    if tokens:
-        value = tokens[0].spelling
-        add_child(graph, parent_id, value)
-        # print("\tValue : {0}".format(value))
+    if ast_node.kind in [CursorKind.STRING_LITERAL,
+                         CursorKind.CHARACTER_LITERAL]:
+        add_child(graph, parent_id, 'STRING_VALUE')
+    else:
+        tokens = list(ast_node.get_tokens())
+        if tokens:
+            value = tokens[0].spelling
+            add_child(graph, parent_id, value)
+            # print("\tValue : {0}".format(value))
 
 
 def add_declaration(parent_id, ast_node, graph):
@@ -153,6 +167,9 @@ def add_declaration(parent_id, ast_node, graph):
 
     if not is_template_parameter(ast_node):
         name = ast_node.spelling
+        # handle unnamed declarations
+        if len(name) == 0:
+            name = ast_node.kind.name + "_UNNAMED"
         add_child(graph, parent_id, name)
         # print("\tName : {0}".format(name))
 
