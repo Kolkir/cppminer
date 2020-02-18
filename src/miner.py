@@ -7,7 +7,7 @@ import os
 from tqdm import tqdm
 from parser_process import ParserProcess
 
-if not Config.get_cindex_library():
+if not Config.library_file:
     Config.set_library_file('/usr/lib/llvm-6.0/lib/libclang.so')
 
 file_types = ('*.c', '*.cc', '*.cpp', '*.cxx', '*.c++')
