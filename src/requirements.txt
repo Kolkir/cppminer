@@ -1,5 +1,7 @@
-clang==6.0.0.2
-decorator==4.4.1
-networkx==2.4
-pygraphviz==1.5
-tqdm==4.42.1
+bitarray
+lmdb
+clang
+decorator
+networkx
+pygraphviz
+tqdm
