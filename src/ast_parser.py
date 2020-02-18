@@ -36,11 +36,12 @@ def tokenize(name):
 
 
 class AstParser:
-    def __init__(self, max_contexts_num, max_path_len, out_path):
+    def __init__(self, max_contexts_num, max_path_len, max_ast_depth, out_path):
         self.save_buffer_size = 1000
         self.out_path = out_path
         self.max_contexts_num = max_contexts_num
         self.max_path_len = max_path_len
+        self.max_ast_depth = max_ast_depth
         self.index = Index.create()
         self.samples = []
 
@@ -70,22 +71,15 @@ class AstParser:
         if len(self.samples) > 0:
             file_name = os.path.join(self.out_path, str(uuid.uuid4().hex) + ".c2s")
             # print(file_name)
-            samples_pos = []
             with open(file_name, "w") as file:
                 for sample in self.samples:
-                    samples_pos.append(file.tell())
                     file.write(str(sample) + "\n")
-
-            file_name += ".num"
-            with open(file_name, "w") as file:
-                for pos in samples_pos:
-                    file.write(str(pos) + "\n")
             self.samples.clear()
 
     def __parse_function(self, func_node):
         try:
             key = tokenize(func_node.spelling)
-            g = ast_to_graph(func_node)
+            g = ast_to_graph(func_node, self.max_ast_depth)
 
             # debug_save_graph(func_node, g)
 
@@ -119,5 +113,7 @@ class AstParser:
                 sample = Sample(key, contexts)
                 self.samples.append(sample)
         except Exception as e:
-            print("Failed to parse function : ")
-            print(e)
+            # skip unknown cursor exceptions
+            if 'Unknown template argument kind' not in str(e):
+                print('Failed to parse function : ')
+                print(e)

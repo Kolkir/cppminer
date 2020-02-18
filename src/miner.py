@@ -2,7 +2,6 @@ import argparse
 import time
 from pathlib import Path
 import multiprocessing
-from data_set_merge import DataSetMerge
 import os
 from tqdm import tqdm
 from parser_process import ParserProcess
@@ -46,6 +45,13 @@ def main():
                              default=0,
                              required=False)
 
+    args_parser.add_argument('-d', '--max_ast_depth',
+                             metavar='depth',
+                             type=int,
+                             help='maximum depth of AST (0 - no limit)',
+                             default=0,
+                             required=False)
+
     args_parser.add_argument('-p', '--processes_num',
                              metavar='number',
                              type=int,
@@ -64,6 +70,9 @@ def main():
     max_path_len = args.max_path_len
     print('Max path length: ' + str(max_path_len))
 
+    max_ast_depth = args.max_ast_depth
+    print('Max ast depth: ' + str(max_ast_depth))
+
     input_path = Path(args.Path).resolve().as_posix()
     print('Input path: ' + input_path)
 
@@ -73,7 +82,7 @@ def main():
     print("Parsing files ...")
     tasks = multiprocessing.JoinableQueue()
     if parallel_processes_num == 1:
-        parser = ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
+        parser = ParserProcess(tasks, max_contexts_num, max_path_len, max_ast_depth, input_path, output_path)
         for file_path in files(input_path):
             print("Parsing : " + file_path)
             tasks.put(file_path)
@@ -81,7 +90,7 @@ def main():
         parser.save()
         tasks.join()
     else:
-        processes = [ParserProcess(tasks, max_contexts_num, max_path_len, input_path, output_path)
+        processes = [ParserProcess(tasks, max_contexts_num, max_path_len, max_ast_depth, input_path, output_path)
                      for _ in range(parallel_processes_num)]
         for p in processes:
             p.start()
@@ -96,29 +105,16 @@ def main():
         # Wait for all of the tasks to finish
         tasks_left = tasks.qsize()
         with tqdm(total=tasks_left) as pbar:
-            for _ in range(tasks_left):
-                time.sleep(0.1)
+            while tasks_left > 0:
+                time.sleep(1)
                 tasks_num = tasks.qsize()
                 pbar.update(tasks_left - tasks_num)
                 tasks_left = tasks_num
 
-        tasks.qsize().join()
+        tasks.join()
         for p in processes:
             p.join()
     print("Parsing done")
-
-    # shuffle and merge samples
-    print("Merging datasets ...")
-    merge = DataSetMerge(output_path)
-    print("Reading samples ...")
-    merge.read_samples()
-    print("Shuffling samples ...")
-    merge.shuffle_samples()
-    print("Merging samples ...")
-    merge.merge(0.7)
-    print("Clearing ...")
-    merge.clear()
-    print("Merging done")
 
 
 if __name__ == '__main__':

@@ -101,14 +101,8 @@ def add_child(graph, parent_id, name):
 
 
 def add_call_expr(parent_id, ast_node, graph):
-    # [kolodiazhnyi] seems that it is redundant info
-    # name = ast_node.spelling
-    # add_child(graph, parent_id, name)
-
     expr_type = ast_node.type.spelling
     add_child(graph, parent_id, expr_type)
-    # print("\tReturn type : {0}".format(expr_type))
-    # print("\tName : {0}".format(name))
 
 
 def add_operator(parent_id, ast_node, graph):
@@ -116,6 +110,7 @@ def add_operator(parent_id, ast_node, graph):
     for token in ast_node.get_tokens():
         if is_operator_token(token.spelling):
             name_token = token
+            break
 
     if not name_token:
         filename = ast_node.location.file.name
@@ -149,9 +144,9 @@ def add_literal(parent_id, ast_node, graph):
                          CursorKind.CHARACTER_LITERAL]:
         add_child(graph, parent_id, 'STRING_VALUE')
     else:
-        tokens = list(ast_node.get_tokens())
-        if tokens:
-            value = tokens[0].spelling
+        token = next(ast_node.get_tokens(), None)
+        if token:
+            value = token.spelling
             add_child(graph, parent_id, value)
             # print("\tValue : {0}".format(value))
 
@@ -159,11 +154,13 @@ def add_literal(parent_id, ast_node, graph):
 def add_declaration(parent_id, ast_node, graph):
     if is_function(ast_node):
         return_type = ast_node.type.get_result().spelling
-        add_child(graph, parent_id, return_type)
+        if len(return_type) > 0:
+            add_child(graph, parent_id, return_type)
     else:
         declaration_type = ast_node.type.spelling
-        add_child(graph, parent_id, declaration_type)
-        # print("\tDecl type : {0}".format(declaration_type))
+        if len(declaration_type) > 0:
+            add_child(graph, parent_id, declaration_type)
+            # print("\tDecl type : {0}".format(declaration_type))
 
     if not is_template_parameter(ast_node):
         name = ast_node.spelling
@@ -174,19 +171,22 @@ def add_declaration(parent_id, ast_node, graph):
         # print("\tName : {0}".format(name))
 
 
-def ast_to_graph(ast_start_node):
+def ast_to_graph(ast_start_node, max_depth):
     g = nx.Graph()
-    stack = [ast_start_node]
+    stack = [(ast_start_node, 0)]
     parent_map = {ast_start_node.hash: None}
     while stack:
-        ast_node = stack.pop()
+        ast_node, depth = stack.pop()
         node_id = ast_node.hash
         if not g.has_node(node_id):
             add_node(ast_node, g)
             parent_id = parent_map[node_id]
             if parent_id is not None:
                 g.add_edge(parent_id, node_id)
-            for child_node in ast_node.get_children():
-                stack.append(child_node)
-                parent_map[child_node.hash] = node_id
+
+            # Ignore too deep trees
+            if max_depth == 0 or depth <= max_depth:
+                for child_node in ast_node.get_children():
+                    stack.append((child_node, depth + 1))
+                    parent_map[child_node.hash] = node_id
     return g

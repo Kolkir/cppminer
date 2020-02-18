@@ -1,62 +1,67 @@
 from pathlib import Path
-from random import shuffle
+from bitarray import bitarray
+from tqdm import tqdm
+import lmdb
 import os
+import random
 
 
 class DataSetMerge:
     def __init__(self, output_path):
-        self.files_map = dict()
-        self.samples_list = []
         self.output_path = output_path
         self.train_set_file = os.path.join(self.output_path, "train.c2s")
         self.test_set_file = os.path.join(self.output_path, "test.c2s")
         self.validation_set_file = os.path.join(self.output_path, "validation.c2s")
+        self.samples_db = lmdb.open(os.path.join(self.output_path, 'samples.db'))
+        self.samples_db.set_mapsize(6442450944)  # 6Gb
+        self.total_num = 0
 
-    def read_samples(self):
-        file_index = 0
-        for file_path in Path(self.output_path).rglob('*.c2s.num'):
-            self.files_map[file_index] = file_path.as_posix()[:-4]
-            with file_path.open() as file:
-                for line in file.readlines():
-                    sample_pos = int(line)
-                    self.samples_list.append((sample_pos, file_index))
-            file_index += 1
+    def merge(self, clear_resources=True):
+        sample_id = 0
+        self.total_num = 0
+        with self.samples_db.begin(write=True) as txn:
+            for file_path in Path(self.output_path).rglob('*.c2s'):
+                with file_path.open() as file:
+                    print('Loading file: ' + file_path.absolute().as_posix())
+                    for line in file.readlines():
+                        txn.put(str(sample_id).encode('ascii'), line.encode('ascii'))
+                        sample_id += 1
+                if clear_resources:
+                    os.remove(file_path.absolute().as_posix())
+            self.total_num = sample_id - 1
 
-    def shuffle_samples(self):
-        shuffle(self.samples_list)
-
-    def merge(self, train_set_ratio=0.7):
+    def dump_datasets(self, train_set_ratio=0.7):
         # split samples into test, validation and training parts
-        all_samples_num = len(self.samples_list)
+        all_samples_num = self.total_num + 1
         train_samples_num = int(all_samples_num * train_set_ratio)
         test_samples_num = (all_samples_num - train_samples_num) // 2
-
-        self.dump_data_set(0, train_samples_num, self.train_set_file)
-        self.dump_data_set(train_samples_num, train_samples_num + test_samples_num,
-                           self.test_set_file)
-        self.dump_data_set(train_samples_num + test_samples_num, all_samples_num,
-                           self.validation_set_file)
-
-    def clear(self):
-        files_to_hold = [self.train_set_file, self.test_set_file, self.validation_set_file]
-        files = [p.as_posix() for p in Path(self.output_path).rglob('*.*')]
-        for file_path in files:
-            if file_path not in files_to_hold:
-                os.remove(file_path)
-
-    def dump_data_set(self, start, end, file_name):
-        files_cache = dict()
-        with open(file_name, "w") as output_file:
-            for i in range(start, end):
-                sample_pos, file_index = self.samples_list[i]
-                if file_index in files_cache.keys():
-                    samples_file = files_cache[file_index]
-                else:
-                    samples_file = open(self.files_map[file_index], "r")
-                    files_cache[file_index] = samples_file
-                samples_file.seek(sample_pos)
-                sample = samples_file.readline()
-                output_file.write(sample)
-
-        for _, file in files_cache.items():
-            file.close()
+        processed = bitarray(all_samples_num)
+        processed.setall(False)
+        train_file = open(self.train_set_file, 'w')
+        train_index = 0
+        test_file = open(self.test_set_file, 'w')
+        test_index = 0
+        validation_file = open(self.validation_set_file, 'w')
+        validation_index = 0
+        try:
+            with self.samples_db.begin(write=False) as txn:
+                for _ in tqdm(range(self.total_num + 1)):
+                    index = random.randint(0, self.total_num)
+                    while processed[index]:
+                        index = random.randint(0, self.total_num)
+                    processed[index] = True
+                    sample = txn.get(str(index).encode('ascii'))
+                    if train_index < train_samples_num:
+                        train_file.write(sample.decode('ascii'))
+                        train_index += 1
+                    elif test_index < test_samples_num:
+                        test_file.write(sample.decode('ascii'))
+                        test_index += 1
+                    elif validation_index < test_samples_num:
+                        validation_file.write(sample.decode('ascii'))
+                        validation_index += 1
+        finally:
+            print("Closing files ...")
+            train_file.close()
+            test_file.close()
+            validation_file.close()
