@@ -47,7 +47,7 @@ class ParserProcess(multiprocessing.Process):
             self.parser.parse([file_path] + default_compile_args)
         else:
             commands = self.compdb.getCompileCommands(file_path)
-            if len(commands) > 0:
+            if commands and len(commands) > 0:
                 command = commands[0]
                 cwd = os.getcwd()
                 os.chdir(command.directory)
