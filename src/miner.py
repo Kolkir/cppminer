@@ -1,3 +1,4 @@
+from clang.cindex import Config
 import argparse
 import time
 from pathlib import Path
@@ -5,6 +6,9 @@ import multiprocessing
 import os
 from tqdm import tqdm
 from parser_process import ParserProcess
+
+if not Config.get_cindex_library():
+    Config.set_library_file('/usr/lib/llvm-6.0/lib/libclang.so')
 
 file_types = ('*.c', '*.cc', '*.cpp', '*.cxx', '*.c++')
 
