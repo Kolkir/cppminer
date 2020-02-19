@@ -9,9 +9,9 @@ import random
 class DataSetMerge:
     def __init__(self, output_path, map_size):
         self.output_path = output_path
-        self.train_set_file = os.path.join(self.output_path, "train.c2s")
-        self.test_set_file = os.path.join(self.output_path, "test.c2s")
-        self.validation_set_file = os.path.join(self.output_path, "validation.c2s")
+        self.train_set_file = os.path.join(self.output_path, "dataset.train.c2s")
+        self.test_set_file = os.path.join(self.output_path, "dataset.test.c2s")
+        self.validation_set_file = os.path.join(self.output_path, "dataset.val.c2s")
         self.samples_db = lmdb.open(os.path.join(self.output_path, 'samples.db'), writemap=True)
         self.samples_db.set_mapsize(map_size)
         self.total_num = 0
