@@ -7,9 +7,6 @@ import os
 from tqdm import tqdm
 from parser_process import ParserProcess
 
-if not Config.library_file:
-    Config.set_library_file('/usr/lib/llvm-6.0/lib/libclang.so')
-
 file_types = ('*.c', '*.cc', '*.cpp', '*.cxx', '*.c++')
 
 
@@ -36,34 +33,44 @@ def main():
                              help='the output path')
 
     args_parser.add_argument('-c', '--max_contexts_num',
-                             metavar='number',
+                             metavar='contexts-number',
                              type=int,
                              help='maximum number of contexts per sample',
                              default=100,
                              required=False)
 
     args_parser.add_argument('-l', '--max_path_len',
-                             metavar='length',
+                             metavar='path-length',
                              type=int,
                              help='maximum path length (0 - no limit)',
                              default=0,
                              required=False)
 
     args_parser.add_argument('-d', '--max_ast_depth',
-                             metavar='depth',
+                             metavar='ast-depth',
                              type=int,
                              help='maximum depth of AST (0 - no limit)',
                              default=0,
                              required=False)
 
     args_parser.add_argument('-p', '--processes_num',
-                             metavar='number',
+                             metavar='processes-number',
                              type=int,
                              help='number of parallel processes',
                              default=4,
                              required=False)
 
+    args_parser.add_argument('-e', '--libclang',
+                             metavar='libclang-path',
+                             type=str,
+                             help='path to libclang.so file',
+                             default='/usr/lib/llvm-6.0/lib/libclang.so',
+                             required=False)
+
     args = args_parser.parse_args()
+
+    if not Config.library_file:
+        Config.set_library_file(args.libclang)
 
     parallel_processes_num = args.processes_num
     print('Parallel processes num: ' + str(parallel_processes_num))
