@@ -77,20 +77,27 @@ def get_id():
 
 
 def add_node(ast_node, graph):
-    node_id = ast_node.hash
-    kind = ast_node.kind.name
-    graph.add_node(node_id, label=kind)
-    # print("Cursor kind : {0}".format(kind))
-    if ast_node.kind.is_declaration():
-        add_declaration(node_id, ast_node, graph)
-    elif is_literal(ast_node):
-        add_literal(node_id, ast_node, graph)
-    elif is_reference(ast_node):
-        add_reference(node_id, ast_node, graph)
-    elif is_operator(ast_node):
-        add_operator(node_id, ast_node, graph)
-    elif is_call_expr(ast_node):
-        add_call_expr(node_id, ast_node, graph)
+    try:
+        node_id = ast_node.hash
+        kind = ast_node.kind.name
+        graph.add_node(node_id, label=kind)
+        # print("Cursor kind : {0}".format(kind))
+        if ast_node.kind.is_declaration():
+            add_declaration(node_id, ast_node, graph)
+        elif is_literal(ast_node):
+            add_literal(node_id, ast_node, graph)
+        elif is_reference(ast_node):
+            add_reference(node_id, ast_node, graph)
+        elif is_operator(ast_node):
+            add_operator(node_id, ast_node, graph)
+        elif is_call_expr(ast_node):
+            add_call_expr(node_id, ast_node, graph)
+    except Exception as e:
+        msg = 'Error: {0} in:\n'.format(str(e))
+        msg += 'Filename : {0}\n'.format(ast_node.location.file.name)
+        msg += 'Start {0}:{1}'.format(ast_node.extent.start.line, ast_node.extent.start.column)
+        msg += 'End {0}:{1}'.format(ast_node.extent.end.line, ast_node.extent.end.column)
+        raise Exception(msg)
 
 
 def add_child(graph, parent_id, name):

@@ -31,7 +31,7 @@ def tokenize(name):
     for token in first_tokens:
         internal_tokens = re.findall('[a-z]+|[A-Z]+[a-z]*|[0-9.]+', token)
         str_tokens += [t for t in internal_tokens if len(t) > 0]
-    assert len(str_tokens) > 0, "Tokenize error"
+    assert len(str_tokens) > 0, "Can't tokenize expr: {0}".format(name)
     return str_tokens
 
 
@@ -116,4 +116,7 @@ class AstParser:
             # skip unknown cursor exceptions
             if 'Unknown template argument kind' not in str(e):
                 print('Failed to parse function : ')
+                print('Filename : ' + func_node.location.file.name)
+                print('Start {0}:{1}'.format(func_node.extent.start.line, func_node.extent.start.column))
+                print('End {0}:{1}'.format(func_node.extent.end.line, func_node.extent.end.column))
                 print(e)
