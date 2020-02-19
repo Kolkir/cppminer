@@ -20,14 +20,17 @@ class DataSetMerge:
         sample_id = 0
         self.total_num = 0
         with self.samples_db.begin(write=True) as txn:
-            for file_path in Path(self.output_path).rglob('*.c2s'):
-                with file_path.open() as file:
-                    print('Loading file: ' + file_path.absolute().as_posix())
-                    for line in file.readlines():
-                        txn.put(str(sample_id).encode('ascii'), line.encode('ascii'))
-                        sample_id += 1
-                if clear_resources:
-                    os.remove(file_path.absolute().as_posix())
+            files_num = sum(1 for _ in Path(self.output_path).rglob('*.c2s'))
+            with tqdm(total=files_num) as pbar:
+                for file_path in Path(self.output_path).rglob('*.c2s'):
+                    with file_path.open() as file:
+                        # print('Loading file: ' + file_path.absolute().as_posix())
+                        for line in file.readlines():
+                            txn.put(str(sample_id).encode('ascii'), line.encode('ascii'))
+                            sample_id += 1
+                    if clear_resources:
+                        os.remove(file_path.absolute().as_posix())
+                    pbar.update(1)
             self.total_num = sample_id - 1
 
     def dump_datasets(self, train_set_ratio=0.7):
