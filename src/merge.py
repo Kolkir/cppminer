@@ -14,10 +14,17 @@ def main():
                              help='the output path')
 
     args_parser.add_argument('-c', '--clear_resources',
-                             metavar='flag',
+                             metavar='clear_resources_flag',
                              type=bool,
                              help='if True clear resource files',
                              default=False,
+                             required=False)
+
+    args_parser.add_argument('-m', '--map_size',
+                             metavar='map_file_size',
+                             type=int,
+                             help='size of the DB file, default(6442450944 bytes)',
+                             default=6442450944,
                              required=False)
 
     args = args_parser.parse_args()
@@ -25,11 +32,14 @@ def main():
     output_path = Path(args.OutPath).resolve().as_posix()
     print('Path: ' + output_path)
 
+    map_size = args.map_size
+    print('Map size: ' + str(map_size))
+
     print('Clear resources: ' + str(args.clear_resources))
 
     # shuffle and merge samples
     print("Merging samples ...")
-    merge = DataSetMerge(output_path)
+    merge = DataSetMerge(output_path, map_size)
     merge.merge(args.clear_resources)
     print("Dumping datasets ...")
     merge.dump_datasets(0.7)
