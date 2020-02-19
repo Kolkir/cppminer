@@ -12,7 +12,7 @@ class DataSetMerge:
         self.train_set_file = os.path.join(self.output_path, "train.c2s")
         self.test_set_file = os.path.join(self.output_path, "test.c2s")
         self.validation_set_file = os.path.join(self.output_path, "validation.c2s")
-        self.samples_db = lmdb.open(os.path.join(self.output_path, 'samples.db'))
+        self.samples_db = lmdb.open(os.path.join(self.output_path, 'samples.db'), writemap=True)
         self.samples_db.set_mapsize(6442450944)  # 6Gb
         self.total_num = 0
 
