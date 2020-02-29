@@ -1,0 +1,19 @@
+FROM ubuntu:18.04
+MAINTAINER Kirill rotate@ukr.net
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get -y update
+RUN apt-get -y upgrade
+
+RUN apt-get install -y git
+RUN apt-get install -y python3
+RUN apt-get install -y python3-pip
+
+RUN pip3 install rouge
+RUN pip3 install requests
+RUN pip3 install tensorflow==1.12
+
+RUN git clone https://github.com/tech-srl/code2seq
+
+
