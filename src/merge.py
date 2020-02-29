@@ -29,7 +29,7 @@ def main():
 
     args = args_parser.parse_args()
 
-    output_path = Path(args.OutPath).resolve().as_posix()
+    output_path = Path(args.DataPath).resolve().as_posix()
     print('Path: ' + output_path)
 
     map_size = args.map_size

@@ -64,12 +64,12 @@ def main():
                              metavar='libclang-path',
                              type=str,
                              help='path to libclang.so file',
-                             default='/usr/lib/llvm-6.0/lib/libclang.so',
                              required=False)
 
     args = args_parser.parse_args()
 
-    if not Config.library_file:
+    if args.libclang:
+        # File path example '/usr/lib/llvm-6.0/lib/libclang.so'
         Config.set_library_file(args.libclang)
 
     parallel_processes_num = args.processes_num

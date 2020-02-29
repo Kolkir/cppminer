@@ -112,6 +112,19 @@ def add_call_expr(parent_id, ast_node, graph):
     add_child(graph, parent_id, expr_type)
 
 
+def fix_cpp_operator_spelling(op_name):
+    if op_name == '|':
+        return 'OPERATOR_BINARY_OR'
+    elif op_name == '||':
+        return 'OPERATOR_LOGICAL_OR'
+    elif op_name == '|=':
+        return 'OPERATOR_ASSIGN_OR'
+    elif op_name == ',':
+        return 'OPERATOR_COMMA'
+    else:
+        return op_name
+
+
 def add_operator(parent_id, ast_node, graph):
     name_token = None
     for token in ast_node.get_tokens():
@@ -126,10 +139,10 @@ def add_operator(parent_id, ast_node, graph):
         code_str = contents[ast_node.extent.start.offset: ast_node.extent.end.offset]
         for ch in code_str:
             if ch in binary_operators:
-                add_child(graph, parent_id, ch)
+                add_child(graph, parent_id, fix_cpp_operator_spelling(ch))
     else:
         name = name_token.spelling
-        add_child(graph, parent_id, name)
+        add_child(graph, parent_id, fix_cpp_operator_spelling(name))
         # print("\tName : {0}".format(name))
 
 
