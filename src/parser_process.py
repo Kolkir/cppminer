@@ -15,10 +15,10 @@ def is_object_file(file_path):
 
 
 class ParserProcess(multiprocessing.Process):
-    def __init__(self, task_queue, max_contexts_num, max_path_len, max_ast_depth, input_path, output_path):
+    def __init__(self, task_queue, max_contexts_num, max_path_len, max_subtokens_num, max_ast_depth, input_path, output_path):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
-        self.parser = AstParser(max_contexts_num, max_path_len, max_ast_depth, output_path)
+        self.parser = AstParser(max_contexts_num, max_path_len, max_subtokens_num, max_ast_depth, output_path)
         try:
             self.compdb = CompilationDatabase.fromDirectory(input_path)
         except CompilationDatabaseError:

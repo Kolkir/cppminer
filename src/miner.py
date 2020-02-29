@@ -46,6 +46,13 @@ def main():
                              default=0,
                              required=False)
 
+    args_parser.add_argument('-s', '--max_subtokens_num',
+                             metavar='subtokens-num',
+                             type=int,
+                             help='maximum number of sub-tokens in a token (0 - no limit)',
+                             default=5,
+                             required=False)
+
     args_parser.add_argument('-d', '--max_ast_depth',
                              metavar='ast-depth',
                              type=int,
@@ -81,8 +88,11 @@ def main():
     max_path_len = args.max_path_len
     print('Max path length: ' + str(max_path_len))
 
+    max_subtokens_num = args.max_subtokens_num
+    print('Max sub-tokens num: ' + str(max_subtokens_num))
+
     max_ast_depth = args.max_ast_depth
-    print('Max ast depth: ' + str(max_ast_depth))
+    print('Max AST depth: ' + str(max_ast_depth))
 
     input_path = Path(args.Path).resolve().as_posix()
     print('Input path: ' + input_path)
@@ -93,7 +103,8 @@ def main():
     print("Parsing files ...")
     tasks = multiprocessing.JoinableQueue()
     if parallel_processes_num == 1:
-        parser = ParserProcess(tasks, max_contexts_num, max_path_len, max_ast_depth, input_path, output_path)
+        parser = ParserProcess(tasks, max_contexts_num, max_path_len, max_subtokens_num, max_ast_depth, input_path,
+                               output_path)
         for file_path in files(input_path):
             print("Parsing : " + file_path)
             tasks.put(file_path)
@@ -101,7 +112,8 @@ def main():
         parser.save()
         tasks.join()
     else:
-        processes = [ParserProcess(tasks, max_contexts_num, max_path_len, max_ast_depth, input_path, output_path)
+        processes = [ParserProcess(tasks, max_contexts_num, max_path_len, max_subtokens_num, max_ast_depth, input_path,
+                                   output_path)
                      for _ in range(parallel_processes_num)]
         for p in processes:
             p.start()

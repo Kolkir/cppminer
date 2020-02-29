@@ -23,7 +23,7 @@ def debug_save_graph(func_node, g):
     a.clear()
 
 
-def tokenize(name):
+def tokenize(name, max_subtokens_num):
     if is_operator_token(name):
         return [name]
     first_tokens = name.split('_')
@@ -32,13 +32,17 @@ def tokenize(name):
         internal_tokens = re.findall('[a-z]+|[A-Z]+[a-z]*|[0-9.]+', token)
         str_tokens += [t for t in internal_tokens if len(t) > 0]
     assert len(str_tokens) > 0, "Can't tokenize expr: {0}".format(name)
+    if max_subtokens_num != 0:
+        str_tokens = [t[:max_subtokens_num] for t in str_tokens]
     return str_tokens
 
 
 class AstParser:
-    def __init__(self, max_contexts_num, max_path_len, max_ast_depth, out_path):
+    def __init__(self, max_contexts_num, max_path_len, max_subtokens_num, max_ast_depth, out_path):
+        self.validate = False
         self.save_buffer_size = 1000
         self.out_path = out_path
+        self.max_subtokens_num = max_subtokens_num
         self.max_contexts_num = max_contexts_num
         self.max_path_len = max_path_len
         self.max_ast_depth = max_ast_depth
@@ -78,7 +82,7 @@ class AstParser:
 
     def __parse_function(self, func_node):
         try:
-            key = tokenize(func_node.spelling)
+            key = tokenize(func_node.spelling, self.max_subtokens_num)
             g = ast_to_graph(func_node, self.max_ast_depth)
 
             # debug_save_graph(func_node, g)
@@ -103,14 +107,15 @@ class AstParser:
                         path_node = g.nodes[path_item]['label']
                         path_tokens.append(path_node)
 
-                    context = Context(tokenize(start_node), tokenize(end_node),
-                                      Path(path_tokens))
+                    context = Context(tokenize(start_node, self.max_subtokens_num),
+                                      tokenize(end_node, self.max_subtokens_num),
+                                      Path(path_tokens, self.validate), self.validate)
                     contexts.append(context)
                 if len(contexts) > self.max_contexts_num:
                     break
 
             if len(contexts) > 0:
-                sample = Sample(key, contexts)
+                sample = Sample(key, contexts, self.validate)
                 self.samples.append(sample)
         except Exception as e:
             # skip unknown cursor exceptions
