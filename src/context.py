@@ -18,4 +18,6 @@ class Context:
 
     @staticmethod
     def validate_sub_token(sub_token):
-        assert ('|' not in sub_token and '|' not in sub_token), "Invalid sub-token format: {0}".format(sub_token)
+        assert (' ' not in sub_token and
+                '|' not in sub_token and
+                ',' not in sub_token), "Invalid sub-token format: {0}".format(sub_token)
