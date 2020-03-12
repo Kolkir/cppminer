@@ -1,7 +1,9 @@
 # cppminer
 cppminer produces a [code2seq](https://github.com/tech-srl/code2seq) compatible datasets from C++ code bases.
 
-This tool consists from three scripts which should be consistently.
+Experimental [C++](https://drive.google.com/file/d/15BDd6zHFkVJXl95FG4JnnSse48k1UR3E/view?usp=sharing) dataset mined from the Chromium project sources.
+
+This tool consists from three scripts which should be run consistently.
  
 # 1. Miner 
 The `miner.py` is the main utility which traverse c++ sources, parse them and produce raw dataset files.
