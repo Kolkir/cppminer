@@ -1,8 +1,8 @@
 from clang.cindex import Index
-from sample import Sample
-from context import Context
-from path import Path
-from ast_utils import ast_to_graph, is_function, is_class, is_operator_token
+from .sample import Sample
+from .context import Context
+from .path import Path
+from .ast_utils import ast_to_graph, is_function, is_class, is_operator_token
 from networkx.algorithms import shortest_path
 from networkx.drawing.nx_agraph import to_agraph
 from itertools import permutations

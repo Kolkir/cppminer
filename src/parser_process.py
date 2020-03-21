@@ -1,7 +1,7 @@
 import multiprocessing
 import os
 from clang.cindex import CompilationDatabase, CompilationDatabaseError
-from ast_parser import AstParser
+from cpp_parser import AstParser
 
 
 def is_object_file(file_path):

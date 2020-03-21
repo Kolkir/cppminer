@@ -1,6 +1,6 @@
 import networkx as nx
 import uuid
-from clang.cindex import CursorKind, TypeKind, TokenKind
+from clang.cindex import CursorKind, TokenKind
 
 
 def is_function(node):
