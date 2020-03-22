@@ -29,7 +29,7 @@ def tokenize(name, max_subtokens_num):
     first_tokens = name.split('_')
     str_tokens = []
     for token in first_tokens:
-        internal_tokens = re.findall('[a-z]+|[A-Z]+[a-z]*|[0-9.]+', token)
+        internal_tokens = re.findall('[a-z]+|[A-Z]+[a-z]*|[0-9.]+|[-*/&|%=()]+', token)
         str_tokens += [t for t in internal_tokens if len(t) > 0]
     assert len(str_tokens) > 0, "Can't tokenize expr: {0}".format(name)
     if max_subtokens_num != 0:
