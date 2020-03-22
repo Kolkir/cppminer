@@ -33,7 +33,7 @@ def tokenize(name, max_subtokens_num):
         str_tokens += [t for t in internal_tokens if len(t) > 0]
     assert len(str_tokens) > 0, "Can't tokenize expr: {0}".format(name)
     if max_subtokens_num != 0:
-        str_tokens = [t[:max_subtokens_num] for t in str_tokens]
+        str_tokens = str_tokens[:max_subtokens_num]
     return str_tokens
 
 
