@@ -72,6 +72,8 @@ class AstParser:
             self.save()
 
     def save(self):
+        if not self.out_path:
+            return
         if not os.path.exists(self.out_path):
             os.makedirs(self.out_path)
         if len(self.samples) > 0:
