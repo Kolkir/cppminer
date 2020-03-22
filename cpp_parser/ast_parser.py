@@ -5,7 +5,7 @@ from .path import Path
 from .ast_utils import ast_to_graph, is_function, is_class, is_operator_token
 from networkx.algorithms import shortest_path
 from networkx.drawing.nx_agraph import to_agraph
-from itertools import permutations
+from itertools import combinations
 import uuid
 import os
 import re
@@ -93,7 +93,7 @@ class AstParser:
             random.shuffle(terminal_nodes)
 
             contexts = []
-            ends = permutations(terminal_nodes, 2)
+            ends = combinations(terminal_nodes, 2)
 
             for start, end in ends:
                 path = shortest_path(g, start, end)
