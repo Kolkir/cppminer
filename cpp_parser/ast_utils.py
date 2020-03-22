@@ -172,7 +172,9 @@ def add_literal(parent_id, ast_node, graph):
 
 
 def add_declaration(parent_id, ast_node, graph):
+    is_func = False
     if is_function(ast_node):
+        is_func = True
         return_type = ast_node.type.get_result().spelling
         if len(return_type) > 0:
             add_child(graph, parent_id, return_type)
@@ -182,7 +184,8 @@ def add_declaration(parent_id, ast_node, graph):
             add_child(graph, parent_id, declaration_type)
             # print("\tDecl type : {0}".format(declaration_type))
 
-    if not is_template_parameter(ast_node):
+    # we skip function names to prevent over-fitting in the code2seq learning tasks
+    if not is_template_parameter(ast_node) and not is_func:
         name = ast_node.spelling
         # handle unnamed declarations
         if len(name) == 0:
