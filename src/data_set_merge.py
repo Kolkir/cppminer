@@ -17,6 +17,7 @@ class DataSetMerge:
         self.total_num = 0
 
     def merge(self, clear_resources=True):
+        functions = set()
         sample_id = 0
         self.total_num = 0
         with self.samples_db.begin(write=True) as txn:
@@ -26,8 +27,12 @@ class DataSetMerge:
                     with file_path.open() as file:
                         # print('Loading file: ' + file_path.absolute().as_posix())
                         for line in file.readlines():
-                            txn.put(str(sample_id).encode('ascii'), line.encode('ascii'))
-                            sample_id += 1
+                            src_mark_str, _, sample_line = line.partition(')')
+                            src_mark = src_mark_str[2:]
+                            if src_mark not in functions:
+                                txn.put(str(sample_id).encode('ascii'), sample_line.encode('ascii'))
+                                sample_id += 1
+                                functions.add(src_mark)
                     if clear_resources:
                         os.remove(file_path.absolute().as_posix())
                     pbar.update(1)

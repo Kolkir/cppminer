@@ -11,9 +11,10 @@ def make_str_key(list_value):
 
 
 class Sample:
-    def __init__(self, key, contexts, validate=False):
+    def __init__(self, key, contexts, source_mark, validate=False):
         self.key = key
         self.contexts = contexts
+        self.source_mark = source_mark
         if validate:
             self.__validate()
 

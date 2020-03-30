@@ -47,7 +47,8 @@ class AstParser:
         self.max_path_len = max_path_len
         self.max_ast_depth = max_ast_depth
         self.index = Index.create()
-        self.samples = []
+        self.samples = set()
+        self.header_only_functions = set()
 
     def __del__(self):
         self.save()
@@ -89,7 +90,7 @@ class AstParser:
             # print(file_name)
             with open(file_name, "w") as file:
                 for sample in self.samples:
-                    file.write(str(sample) + "\n")
+                    file.write(str(sample.source_mark) + str(sample) + "\n")
             self.samples.clear()
 
     def __parse_function(self, func_node):
@@ -97,6 +98,17 @@ class AstParser:
             # ignore standard library functions
             if func_node.displayname.startswith('__'):
                 return
+
+            # detect header only function duplicates
+            file_name = func_node.location.file.name
+            source_mark = (file_name, func_node.extent.start.line)
+            if file_name.endswith('.h') and func_node.is_definition:
+                # print('Header only function: {0}'.format(func_node.displayname))
+                if source_mark in self.header_only_functions:
+                    # print('Duplicate')
+                    return
+                else:
+                    self.header_only_functions.add(source_mark)
 
             key = tokenize(func_node.spelling, self.max_subtokens_num)
             g = ast_to_graph(func_node, self.max_ast_depth)
@@ -106,7 +118,7 @@ class AstParser:
             terminal_nodes = [node for (node, degree) in g.degree() if degree == 1]
             random.shuffle(terminal_nodes)
 
-            contexts = []
+            contexts = set()
             ends = combinations(terminal_nodes, 2)
 
             for start, end in ends:
@@ -126,13 +138,13 @@ class AstParser:
                     context = Context(tokenize(start_node, self.max_subtokens_num),
                                       tokenize(end_node, self.max_subtokens_num),
                                       Path(path_tokens, self.validate), self.validate)
-                    contexts.append(context)
+                    contexts.add(context)
                 if len(contexts) > self.max_contexts_num:
                     break
 
             if len(contexts) > 0:
-                sample = Sample(key, contexts, self.validate)
-                self.samples.append(sample)
+                sample = Sample(key, contexts, source_mark, self.validate)
+                self.samples.add(sample)
         except Exception as e:
             # skip unknown cursor exceptions
             if 'Unknown template argument kind' not in str(e):
