@@ -3,6 +3,12 @@ import uuid
 from clang.cindex import CursorKind, TokenKind
 
 
+def is_namespace(node):
+    if node.kind in [CursorKind.NAMESPACE]:
+        return True
+    return False
+
+
 def is_function(node):
     if node.kind in [CursorKind.FUNCTION_DECL,
                      CursorKind.FUNCTION_TEMPLATE,

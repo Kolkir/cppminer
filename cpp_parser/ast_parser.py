@@ -2,7 +2,7 @@ from clang.cindex import Index
 from .sample import Sample
 from .context import Context
 from .path import Path
-from .ast_utils import ast_to_graph, is_function, is_class, is_operator_token
+from .ast_utils import ast_to_graph, is_function, is_class, is_operator_token, is_namespace
 from networkx.algorithms import shortest_path
 from networkx.drawing.nx_agraph import to_agraph
 from itertools import combinations
@@ -52,20 +52,28 @@ class AstParser:
     def __del__(self):
         self.save()
 
-    def parse(self, compiler_args, file_path=None):
-        ast = self.index.parse(file_path, compiler_args)
+    def __parse_node(self, node):
+        namespaces = [x for x in node.get_children() if is_namespace(x)]
+        for n in namespaces:
+            # ignore standard library functions
+            if n.displayname != 'std' and not n.displayname.startswith('__'):
+                self.__parse_node(n)
 
-        functions = [x for x in ast.cursor.get_children() if is_function(x)]
+        functions = [x for x in node.get_children() if is_function(x)]
         for f in functions:
             self.__parse_function(f)
 
-        classes = [x for x in ast.cursor.get_children() if is_class(x)]
+        classes = [x for x in node.get_children() if is_class(x)]
         for c in classes:
             methods = [x for x in c.get_children() if is_function(x)]
             for m in methods:
                 self.__parse_function(m)
 
         self.__dump_samples()
+
+    def parse(self, compiler_args, file_path=None):
+        ast = self.index.parse(file_path, compiler_args)
+        self.__parse_node(ast.cursor)
 
     def __dump_samples(self):
         if len(self.samples) >= self.save_buffer_size:
@@ -86,6 +94,10 @@ class AstParser:
 
     def __parse_function(self, func_node):
         try:
+            # ignore standard library functions
+            if func_node.displayname.startswith('__'):
+                return
+
             key = tokenize(func_node.spelling, self.max_subtokens_num)
             g = ast_to_graph(func_node, self.max_ast_depth)
 
