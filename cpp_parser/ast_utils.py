@@ -3,18 +3,35 @@ import uuid
 from clang.cindex import CursorKind, TokenKind
 
 
+def make_ast_err_message(msg, ast_node):
+    msg = 'Error: {0} in:\n'.format(msg)
+    msg += 'Filename : {0}\n'.format(ast_node.location.file.name)
+    msg += 'Start {0}:{1}'.format(ast_node.extent.start.line, ast_node.extent.start.column)
+    msg += ' End {0}:{1}'.format(ast_node.extent.end.line, ast_node.extent.end.column)
+    return msg
+
+
+def is_node_kind_safe(node, kinds):
+    try:
+        return node.kind in kinds
+    except Exception as e:
+        msg = make_ast_err_message(str(e), node)
+        print(msg)
+        return CursorKind.NOT_IMPLEMENTED
+
+
 def is_namespace(node):
-    if node.kind in [CursorKind.NAMESPACE]:
+    if is_node_kind_safe(node, [CursorKind.NAMESPACE]):
         return True
     return False
 
 
 def is_function(node):
-    if node.kind in [CursorKind.FUNCTION_DECL,
-                     CursorKind.FUNCTION_TEMPLATE,
-                     CursorKind.CXX_METHOD,
-                     CursorKind.DESTRUCTOR,
-                     CursorKind.CONSTRUCTOR]:
+    if is_node_kind_safe(node, [CursorKind.FUNCTION_DECL,
+                                CursorKind.FUNCTION_TEMPLATE,
+                                CursorKind.CXX_METHOD,
+                                CursorKind.DESTRUCTOR,
+                                CursorKind.CONSTRUCTOR]):
         if node.is_definition():
             not_empty = False
             for _ in node.get_children():
@@ -25,36 +42,36 @@ def is_function(node):
 
 
 def is_class(node):
-    return node.kind in [CursorKind.CLASS_TEMPLATE,
-                         CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
-                         CursorKind.CLASS_DECL]
+    return is_node_kind_safe(node, [CursorKind.CLASS_TEMPLATE,
+                                    CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
+                                    CursorKind.CLASS_DECL])
 
 
 def is_literal(node):
-    return node.kind in [CursorKind.INTEGER_LITERAL,
-                         CursorKind.FLOATING_LITERAL,
-                         CursorKind.IMAGINARY_LITERAL,
-                         CursorKind.STRING_LITERAL,
-                         CursorKind.CHARACTER_LITERAL]
+    return is_node_kind_safe(node, [CursorKind.INTEGER_LITERAL,
+                                    CursorKind.FLOATING_LITERAL,
+                                    CursorKind.IMAGINARY_LITERAL,
+                                    CursorKind.STRING_LITERAL,
+                                    CursorKind.CHARACTER_LITERAL])
 
 
 def is_template_parameter(node):
-    return node.kind in [CursorKind.TEMPLATE_TYPE_PARAMETER,
-                         CursorKind.TEMPLATE_TEMPLATE_PARAMETER]
+    return is_node_kind_safe(node, [CursorKind.TEMPLATE_TYPE_PARAMETER,
+                                    CursorKind.TEMPLATE_TEMPLATE_PARAMETER])
 
 
 def is_reference(node):
-    return node.kind in [CursorKind.DECL_REF_EXPR, CursorKind.MEMBER_REF_EXPR]
+    return is_node_kind_safe(node, [CursorKind.DECL_REF_EXPR, CursorKind.MEMBER_REF_EXPR])
 
 
 def is_operator(node):
-    return node.kind in [CursorKind.BINARY_OPERATOR,
-                         CursorKind.UNARY_OPERATOR,
-                         CursorKind.COMPOUND_ASSIGNMENT_OPERATOR]
+    return is_node_kind_safe(node, [CursorKind.BINARY_OPERATOR,
+                                    CursorKind.UNARY_OPERATOR,
+                                    CursorKind.COMPOUND_ASSIGNMENT_OPERATOR])
 
 
 def is_call_expr(node):
-    return node.kind == CursorKind.CALL_EXPR
+    return is_node_kind_safe(node, [CursorKind.CALL_EXPR])
 
 
 binary_operators = ['+', '-', '*', '/', '%', '&', '|']
@@ -99,10 +116,7 @@ def add_node(ast_node, graph):
         elif is_call_expr(ast_node):
             add_call_expr(node_id, ast_node, graph)
     except Exception as e:
-        msg = 'Error: {0} in:\n'.format(str(e))
-        msg += 'Filename : {0}\n'.format(ast_node.location.file.name)
-        msg += 'Start {0}:{1}'.format(ast_node.extent.start.line, ast_node.extent.start.column)
-        msg += 'End {0}:{1}'.format(ast_node.extent.end.line, ast_node.extent.end.column)
+        msg = make_ast_err_message(str(e), ast_node)
         raise Exception(msg)
 
 

@@ -2,7 +2,7 @@ from clang.cindex import Index
 from .sample import Sample
 from .context import Context
 from .path import Path
-from .ast_utils import ast_to_graph, is_function, is_class, is_operator_token, is_namespace
+from .ast_utils import ast_to_graph, is_function, is_class, is_operator_token, is_namespace, make_ast_err_message
 from networkx.algorithms import shortest_path
 from networkx.drawing.nx_agraph import to_agraph
 from itertools import combinations
@@ -54,21 +54,25 @@ class AstParser:
         self.save()
 
     def __parse_node(self, node):
-        namespaces = [x for x in node.get_children() if is_namespace(x)]
-        for n in namespaces:
-            # ignore standard library functions
-            if n.displayname != 'std' and not n.displayname.startswith('__'):
-                self.__parse_node(n)
+        try:
+            namespaces = [x for x in node.get_children() if is_namespace(x)]
+            for n in namespaces:
+                # ignore standard library functions
+                if n.displayname != 'std' and not n.displayname.startswith('__'):
+                    self.__parse_node(n)
 
-        functions = [x for x in node.get_children() if is_function(x)]
-        for f in functions:
-            self.__parse_function(f)
+            functions = [x for x in node.get_children() if is_function(x)]
+            for f in functions:
+                self.__parse_function(f)
 
-        classes = [x for x in node.get_children() if is_class(x)]
-        for c in classes:
-            methods = [x for x in c.get_children() if is_function(x)]
-            for m in methods:
-                self.__parse_function(m)
+            classes = [x for x in node.get_children() if is_class(x)]
+            for c in classes:
+                methods = [x for x in c.get_children() if is_function(x)]
+                for m in methods:
+                    self.__parse_function(m)
+        except Exception as e:
+            msg = make_ast_err_message(str(e), node)
+            raise Exception(msg)
 
         self.__dump_samples()
 
