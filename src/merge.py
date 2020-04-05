@@ -24,7 +24,7 @@ def main():
                              metavar='map_file_size',
                              type=int,
                              help='size of the DB file, default(6442450944 bytes)',
-                             default=10000000000,
+                             default=100000000000,
                              required=False)
 
     args = args_parser.parse_args()

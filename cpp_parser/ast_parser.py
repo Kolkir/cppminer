@@ -71,8 +71,9 @@ class AstParser:
                 for m in methods:
                     self.__parse_function(m)
         except Exception as e:
-            msg = make_ast_err_message(str(e), node)
-            raise Exception(msg)
+            if 'Unknown template argument kind' not in str(e):
+                msg = make_ast_err_message(str(e), node)
+                raise Exception(msg)
 
         self.__dump_samples()
 
@@ -132,16 +133,19 @@ class AstParser:
                         continue  # skip too long paths
                     path = path[1:-1]
                     start_node = g.nodes[start]['label']
+                    tokenize_start_node = not g.nodes[start]['is_reserved']
                     end_node = g.nodes[end]['label']
+                    tokenize_end_node = not g.nodes[end]['is_reserved']
 
                     path_tokens = []
                     for path_item in path:
                         path_node = g.nodes[path_item]['label']
                         path_tokens.append(path_node)
 
-                    context = Context(tokenize(start_node, self.max_subtokens_num),
-                                      tokenize(end_node, self.max_subtokens_num),
-                                      Path(path_tokens, self.validate), self.validate)
+                    context = Context(
+                        tokenize(start_node, self.max_subtokens_num) if tokenize_start_node else [start_node],
+                        tokenize(end_node, self.max_subtokens_num) if tokenize_end_node else [end_node],
+                        Path(path_tokens, self.validate), self.validate)
                     contexts.add(context)
                 if len(contexts) > self.max_contexts_num:
                     break
