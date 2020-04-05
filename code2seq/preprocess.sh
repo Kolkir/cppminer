@@ -23,6 +23,7 @@
 #   step and set this value to the number of cores.
 # PYTHON - python3 interpreter alias.
 BASE_PATH=$1
+OUT_PATH=$2
 DATASET_NAME=dataset
 MAX_DATA_CONTEXTS=1000
 MAX_CONTEXTS=200
@@ -36,12 +37,12 @@ TRAIN_DATA_FILE=${BASE_PATH}/${DATASET_NAME}.train.c2s
 VAL_DATA_FILE=${BASE_PATH}/${DATASET_NAME}.val.c2s
 TEST_DATA_FILE=${BASE_PATH}/${DATASET_NAME}.test.c2s
 
-mkdir -p data
-mkdir -p data/${DATASET_NAME}
+mkdir -p ${OUT_PATH}/data
+mkdir -p ${OUT_PATH}/data/${DATASET_NAME}
 
-TARGET_HISTOGRAM_FILE=data/${DATASET_NAME}/${DATASET_NAME}.histo.tgt.c2s
-SOURCE_SUBTOKEN_HISTOGRAM=data/${DATASET_NAME}/${DATASET_NAME}.histo.ori.c2s
-NODE_HISTOGRAM_FILE=data/${DATASET_NAME}/${DATASET_NAME}.histo.node.c2s
+TARGET_HISTOGRAM_FILE=${OUT_PATH}/data/${DATASET_NAME}/${DATASET_NAME}.histo.tgt.c2s
+SOURCE_SUBTOKEN_HISTOGRAM=${OUT_PATH}/data/${DATASET_NAME}/${DATASET_NAME}.histo.ori.c2s
+NODE_HISTOGRAM_FILE=${OUT_PATH}/data/${DATASET_NAME}/${DATASET_NAME}.histo.node.c2s
 
 echo "Creating histograms from the training data"
 cat ${TRAIN_DATA_FILE} | cut -d' ' -f1 | tr '|' '\n' | awk '{n[$0]++} END {for (i in n) print i,n[i]}' > ${TARGET_HISTOGRAM_FILE}
@@ -51,8 +52,8 @@ cat ${TRAIN_DATA_FILE} | cut -d' ' -f2- | tr ' ' '\n' | cut -d',' -f2 | tr '|' '
 ${PYTHON} preprocess.py --train_data ${TRAIN_DATA_FILE} --test_data ${TEST_DATA_FILE} --val_data ${VAL_DATA_FILE} \
   --max_contexts ${MAX_CONTEXTS} --max_data_contexts ${MAX_DATA_CONTEXTS} --subtoken_vocab_size ${SUBTOKEN_VOCAB_SIZE} \
   --target_vocab_size ${TARGET_VOCAB_SIZE} --subtoken_histogram ${SOURCE_SUBTOKEN_HISTOGRAM} \
-  --node_histogram ${NODE_HISTOGRAM_FILE} --target_histogram ${TARGET_HISTOGRAM_FILE} --output_name data/${DATASET_NAME}/${DATASET_NAME}
-    
+  --node_histogram ${NODE_HISTOGRAM_FILE} --target_histogram ${TARGET_HISTOGRAM_FILE} --output_name ${OUT_PATH}/data/${DATASET_NAME}/${DATASET_NAME}
+
 # If all went well, the raw data files can be deleted, because preprocess.py creates new files 
 # with truncated and padded number of paths for each example.
 rm ${TARGET_HISTOGRAM_FILE} ${SOURCE_SUBTOKEN_HISTOGRAM} ${NODE_HISTOGRAM_FILE}
